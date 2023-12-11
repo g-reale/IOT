@@ -6,8 +6,8 @@
 #include <Wire.h>
 #include <Adafruit_BMP280.h>
 
-#define NC 255
-#define NTR 0
+#define NC 255 //not connected
+#define NTR 0  //nothing to report
 
 Adafruit_BMP280 bmp;
 
@@ -66,6 +66,15 @@ uint8_t sampleHumidity(float& output, uint8_t pin){
   static MovingAvg avg_humidity;
   float sample = 100 * analogRead(pin) / 4096;
   output = avg_humidity.filter(sample);
+
+  //event handling
+  return 1;
+}
+
+uint8_t sampleLuminosity(float& output, uint8_t pin){
+  static MovingAvg avg_luminosity;
+  float sample = 100 * analogRead(pin) / 4096;
+  output = avg_luminosity.filter(sample);
 
   //event handling
   return 1;
