@@ -18,14 +18,28 @@ Adafruit_BMP280 bmp;
 #define EVENT_ENVIRONMENT_CONTROL_OFF 5
 #define EVENT_AUTOMATIC_COVER_ON 6
 #define EVENT_AUTOMATIC_COVER_OFF 7
+#define NOT_RAINING 8  
+#define RAINING 9
 
 // limits
 #define TEMPERATURE_HIGH_THRESHOLD 30.0  
 #define TEMPERATURE_LOW_THRESHOLD 15.0
 #define SOIL_HUMIDITY_LOW_THRESHOLD 380
 #define LUMINOSITY_HIGH_THRESHOLD 20.0
-#define PRESSURE_LOW_THRESHOLD 1000.0 
+#define PRESSURE_LOW_THRESHOLD 1000.0
 
+const char event_names[][30] = {
+  "NOTHING_TO_REPORT",
+  "-\-",
+  "IRRIGATION_ON",
+  "IRRIGATION_OFF",
+  "ENVIROMENT_CONTROL_ON",
+  "ENVIROMENT_CONTROL_OFF",
+  "AUTOMATIC_COVER_ON",
+  "AUTOMATIC_COVER_OFF",
+  "NOT_RAINING",
+  "RAINING"
+};
 
 uint8_t sampleBmpTemp(float& output, uint8_t pin){
   static MovingAvg avg_temp;
@@ -118,6 +132,15 @@ uint8_t sampleLuminosity(float& output, uint8_t pin){
     // Condition 8: If the luminosity is not above the upper threshold
     return EVENT_AUTOMATIC_COVER_OFF;
   }
+}
+
+uint8_t sampleRain(float& output, uint8_t pin){
+  if(digitalRead(pin)){
+    output = 0;
+    return NOT_RAINING;
+  }
+  output = 1;
+  return RAINING;
 }
 
 #endif
