@@ -1,5 +1,9 @@
+
 #include "Logger.hpp"
 #include "Samplers.hpp"
+
+#include <WiFi.h>
+#include <PubSubClient.h>
 
 // LEDs
 #define RED_LED_PIN 14
@@ -14,15 +18,52 @@
 #define LUM "LUM"
 #define RAN "RAN"
 
+#define PATH "okidoki/teamo/shida/"
+
 //states
 #define OFF 0
 #define LOCK 1
 #define LOCK_1 2
 #define ON 3
 
+#define SSID "HMOlivei1"
+#define PWD "helio001"
+
+#define SERVER "test.mosquitto.org"
+#define PORT 1883
+
+
+WiFiClient wifi;
+PubSubClient mqttClient(wifi);
+
 void setup() {
   Serial.begin(115200);
+
+  Serial.print("Connecting to WiFi ");
+  Serial.println("HMOlivei1");
+  WiFi.begin(SSID,PWD);
   
+  while (WiFi.status() != WL_CONNECTED){
+    Serial.print(".");
+    delay(500);
+  }
+
+  Serial.print("\nConnected to ");
+  Serial.println(SSID);
+  
+  mqttClient.setServer(SERVER,PORT);
+
+  Serial.println("Connecting to MQTT Broker...");
+  while (!mqttClient.connected()) {
+    char clientId[100] = "\0";
+    sprintf(clientId, "ESP32Client-%04X", random(0xffff));
+    Serial.println(clientId);
+    if (mqttClient.connect(clientId)){
+      Serial.println("Connected to MQTT broker.");
+      mqttClient.subscribe("/okidoki/teamo/shida");
+    }
+  }
+
   pinMode(RED_LED_PIN, OUTPUT);
   pinMode(YELLOW_LED_PIN, OUTPUT);
   pinMode(GREEN_LED_PIN, OUTPUT);
@@ -48,6 +89,11 @@ void loop() {
   static bool green = false;
 
   if(event = Logger::logAll(id)){
+    
+    String sensor = String(PATH) + String(Logger::getName(id));
+    mqttClient.publish(sensor.c_str(), 
+                       String(Logger::getData(id)).c_str());
+  
     Serial.print("event: ");
     Serial.print(event_names[event]);
     Serial.print("\tid: ");
@@ -55,7 +101,7 @@ void loop() {
     Serial.print("\tdata: ");
     Serial.print(Logger::getData(id));
     Serial.print("\tname: ");
-    Serial.println(Logger::getName(id));
+    Serial.println(sensor.c_str());
 
     static uint8_t state = OFF;
 
