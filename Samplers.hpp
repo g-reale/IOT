@@ -12,33 +12,42 @@
 Adafruit_BMP280 bmp;
 
 // Events
-#define EVENT_IRRIGATION_ON 2
-#define EVENT_IRRIGATION_OFF 3
-#define EVENT_ENVIRONMENT_CONTROL_ON 4
-#define EVENT_ENVIRONMENT_CONTROL_OFF 5
-#define EVENT_AUTOMATIC_COVER_ON 6
+//# <- comentário em pyrhon
+
+#define LOW_HUM 1
+#define HIGH_HUM 2
+
+#define LOW_PRESS 3
+#define HIGH_PRESS 4
+
+#define RAINING 5
+#define NOT_RAINING 6
+
 #define EVENT_AUTOMATIC_COVER_OFF 7
-#define NOT_RAINING 8  
-#define RAINING 9
+#define EVENT_AUTOMATIC_COVER_ON 8
+
+#define EVENT_ENVIRONMENT_CONTROL_OFF 9
+#define EVENT_ENVIRONMENT_CONTROL_ON 10
 
 // limits
 #define TEMPERATURE_HIGH_THRESHOLD 30.0  
 #define TEMPERATURE_LOW_THRESHOLD 15.0
-#define SOIL_HUMIDITY_LOW_THRESHOLD 380
+#define SOIL_HUMIDITY_LOW_THRESHOLD 38
 #define LUMINOSITY_HIGH_THRESHOLD 20.0
 #define PRESSURE_LOW_THRESHOLD 1000.0
 
 const char event_names[][30] = {
   "NOTHING_TO_REPORT",
-  "-\-",
-  "IRRIGATION_ON",
-  "IRRIGATION_OFF",
-  "ENVIROMENT_CONTROL_ON",
-  "ENVIROMENT_CONTROL_OFF",
-  "AUTOMATIC_COVER_ON",
-  "AUTOMATIC_COVER_OFF",
+  "LOW_HUM",
+  "HIGH_HUM",
+  "LOW_PRES",
+  "HIGH_PRESS",
+  "RAINING",
   "NOT_RAINING",
-  "RAINING"
+  "AUTOMATIC_COVER_OFF",
+  "AUTOMATIC_COVER_ON",
+  "ENVIRONMENT_CONTROL_OFF",
+  "ENVIRONMENT_CONTROL_ON"
 };
 
 uint8_t sampleBmpTemp(float& output, uint8_t pin){
@@ -79,13 +88,10 @@ uint8_t sampleBmpPress(float& output, uint8_t pin){
 
   output = avg_temp.filter(bmp.readPressure());
 
-  if (output > PRESSURE_LOW_THRESHOLD) { 
-    // Condition 2: If atmospheric pressure is significantly lower than average, as this indicates possible imminent rain
-    return EVENT_IRRIGATION_OFF;
-  }
+  if (output < PRESSURE_LOW_THRESHOLD) 
+    return LOW_PRESS;
   
-  //event handling
-  return NTR;
+  return HIGH_PRESS;
 }
 
 uint8_t sampleBmpAlt(float& output, uint8_t pin){
@@ -110,13 +116,10 @@ uint8_t sampleHumidity(float& output, uint8_t pin){
   float sample = 100 * analogRead(pin) / 4096;
   output = avg_humidity.filter(sample);
 
-  if (output < SOIL_HUMIDITY_LOW_THRESHOLD) { 
-    // Condition 1: If soil moisture is below the desired level
-    return EVENT_IRRIGATION_ON;
-  } else {
-    // Condition 2: If soil moisture is normal or above the desired level
-    return EVENT_IRRIGATION_OFF;
-  }
+  if (output < SOIL_HUMIDITY_LOW_THRESHOLD)
+    return LOW_HUM;
+  else 
+    return HIGH_HUM;
 }
 
 uint8_t sampleLuminosity(float& output, uint8_t pin){

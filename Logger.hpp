@@ -23,6 +23,7 @@ class Logger{
     uint32_t ttl;
     uint32_t timestamp; 
     uint8_t (*sampler)(float&,uint8_t);
+    char * name;
     float data;
 
     
@@ -41,8 +42,10 @@ class Logger{
 
     Logger(uint8_t (*new_sampler)(float&,uint8_t), 
            uint8_t new_pin,
-           uint32_t new_ttl)
+           uint32_t new_ttl,
+           char * new_name)
     {
+      name = new_name;
       sampler = new_sampler;
       pin = new_pin;
       ttl = new_ttl;
@@ -66,6 +69,11 @@ class Logger{
     // returns the data of the sensor acording to it's id
     static inline float getData(uint8_t id){
       return loggers[id%id_head]->data;
+    }
+
+    // returns the human readable name for the sensor
+    static inline char * getName(uint8_t id){
+      return loggers[id%id_head]->name;
     }
 
     // returns the number of the event if one has ocurred
