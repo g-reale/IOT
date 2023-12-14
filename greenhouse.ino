@@ -44,16 +44,12 @@ const int PORT = 1883;
 WiFiClient wifi;
 PubSubClient mqttClient(wifi);
 
-uint8_t id;
-uint8_t event;
-uint8_t state = OFF;
-
-bool red = false;
-bool yellow = false;
-bool green = false;
-bool rain = false;
-bool notRain = false;
-bool firstM = true;
+static bool red = false;
+static bool yellow = false;
+static bool green = false;
+static bool rain = false;
+static bool notRain = false;
+static bool firstM = true;
 
 String message;
 String sensor;
@@ -104,7 +100,7 @@ void loop()
     green = false;
     publishLEDStatus(red, yellow, green, false);
   }
-  delay(1000);
+  // delay(1000);
 }
 
 void connectToWiFi()
@@ -193,6 +189,9 @@ void CallbackMqtt(char *topic, byte *payload, unsigned int length)
 
 uint8_t updateAndPublishAllSensors()
 {
+  uint8_t id;
+  uint8_t event;
+
   Serial.print("\t\t > ID: ");
   Serial.println(id);
 
@@ -235,7 +234,7 @@ void handleManualControl() {
   }
 
   // Update sensor values and publish them
-  event = updateAndPublishAllSensors();
+  uint8_t event = updateAndPublishAllSensors();
 
   if (MANUAL_IRRIGATION) {
     // Turn on the red LED for irrigation
@@ -274,9 +273,12 @@ void handleManualControl() {
 void handleAutomaticControl()
 {
   Serial.println("AUTOMATICO");
+
+  static uint8_t state = OFF;
+  
   firstM = true; // variable to reset the LEDs when manual control is activated
   
-  event = updateAndPublishAllSensors();
+  uint8_t event = updateAndPublishAllSensors();
 
   switch (state)
   {
