@@ -30,13 +30,13 @@ const char *PATH = "IOT/okidoki/";
 enum States
 {
   OFF = 0,
-  LOCK,
-  LOCK_1,
-  ON
+  LOCK = 1,
+  LOCK_1 = 2,
+  ON = 3
 };
 
-const char *SSID = SSID;
-const char *PWD = PWD;
+const char *SSID = "FERNANDA";
+const char *PWD = "17071996";
 
 const char *SERVER = "test.mosquitto.org";
 const int PORT = 1883;
@@ -53,6 +53,7 @@ bool yellow = false;
 bool green = false;
 bool rain = false;
 bool notRain = false;
+bool firstM = true;
 
 String message;
 String sensor;
@@ -64,16 +65,14 @@ Logger hum(sampleHumidity, 13, 10000, HUM);
 Logger lum(sampleLuminosity, 12, 10000, LUM);
 Logger ran(sampleRain, 19, 10000, RAN);
 
-Logger *sensors[] = {&temp, &press, &alt, &hum, &lum, &ran};
-
 void CallbackMqtt(char *topic, byte *payload, unsigned int length);
 void handleManualControl();
 void handleAutomaticControl();
 void connectToWiFi();
 void connectToMQTTBroker();
 void setupLEDs();
-void publishLEDStatus(bool red, bool yellow, bool green);
-void updateAndPublishAllSensors();
+void publishLEDStatus(bool red, bool yellow, bool green, bool delayOn);
+uint8_t updateAndPublishAllSensors();
 
 void setup()
 {
@@ -90,6 +89,7 @@ void loop()
   if (SYSTEM_ON)
   {
     mqttClient.publish((String(PATH) + String("STATUS")).c_str(), String("sistemas ligados").c_str());
+    
     if (MANUALLY)
       handleManualControl();
     else
@@ -102,7 +102,7 @@ void loop()
     red = false;
     yellow = false;
     green = false;
-    publishLEDStatus(red, yellow, green);
+    publishLEDStatus(red, yellow, green, false);
   }
   delay(1000);
 }
@@ -191,85 +191,99 @@ void CallbackMqtt(char *topic, byte *payload, unsigned int length)
     MANUAL_COLD = true;
 }
 
-void updateAndPublishAllSensors()
+uint8_t updateAndPublishAllSensors()
 {
-  for (Logger *sensor : sensors)
-  {
-    if (event = sensor->logAll(id))
-    {
-      String sensorName = String(PATH) + String(sensor->getName(id));
+  Serial.print("\t\t > ID: ");
+  Serial.println(id);
 
-      rain = (strcmp(event_names[event], "RAINING") == 0);
-      notRain = (strcmp(event_names[event], "NOT_RAINING") == 0);
+  if(event = Logger::logAll(id)){
+    sensor = String(PATH) + String(Logger::getName(id));
 
-      if (rain)
-        message = String("CHOVENDO");
-      else if (notRain)
-        message = String("SEM CHUVA");
-      else
-        message = String(sensor->getData(id));
-
-      mqttClient.publish(sensorName.c_str(), message.c_str());
+    if (strcmp(event_names[event], "RAINING") == 0) {
+      rain = true;
+      notRain = false;
+      message = "CHOVENDO";
+    } else if (strcmp(event_names[event], "NOT_RAINING") == 0) {
+      rain = false;
+      notRain = true;
+      message = "SEM CHUVA";
+    } else {
+      message = String(Logger::getData(id));
     }
+
+    Serial.print("\t\t > Publicacao: Sensor: ");
+    Serial.print(sensor);
+    Serial.print(" - Mensagem: ");
+    Serial.println(message);
+
+    mqttClient.publish(sensor.c_str(), message.c_str());
+
+    return event;
   }
 }
 
-void handleManualControl()
-{
+void handleManualControl() {
   Serial.println("MANUAL");
-  updateAndPublishAllSensors();
 
-  mqttClient.publish((String(PATH) + String("REDLED")).c_str(), String(0).c_str());
-  mqttClient.publish((String(PATH) + String("YELLOWLED")).c_str(), String(0).c_str());
-  digitalWrite(RED_LED_PIN, LOW);
-  digitalWrite(YELLOW_LED_PIN, LOW);
+  // Turn off all LEDs
+  if (firstM) {
+    firstM = false;
+    red = false;
+    yellow = false;
+    green = false;
+    publishLEDStatus(red, yellow, green, false);
+  }
 
-  if (MANUAL_IRRIGATION)
-  {
-    mqttClient.publish((String(PATH) + String("REDLED")).c_str(), String(1).c_str());
-    digitalWrite(RED_LED_PIN, HIGH);
-    delay(1500);
-    mqttClient.publish((String(PATH) + String("REDLED")).c_str(), String(0).c_str());
-    digitalWrite(RED_LED_PIN, LOW);
+  // Update sensor values and publish them
+  event = updateAndPublishAllSensors();
+
+  if (MANUAL_IRRIGATION) {
+    // Turn on the red LED for irrigation
+    red = true;
+    publishLEDStatus(red, yellow, green, true);
+    // Turn off the red LED
+    red = false;
+    publishLEDStatus(red, yellow, green, false);
     MANUAL_IRRIGATION = false;
   }
 
-  if (MANUAL_COVER)
-  {
-    mqttClient.publish((String(PATH) + String("GREENLED")).c_str(), String(1).c_str());
-    digitalWrite(GREEN_LED_PIN, HIGH);
-  }
-  else if (!MANUAL_COVER)
-  {
-    mqttClient.publish((String(PATH) + String("GREENLED")).c_str(), String(0).c_str());
-    digitalWrite(GREEN_LED_PIN, LOW);
+  if (MANUAL_COVER) {
+    // Turn on the green LED for cover
+    green = true;
+    publishLEDStatus(red, yellow, green, false);
+  } else {
+    // Turn off the green LED if manual cover is not active
+    green = false;
+    publishLEDStatus(red, yellow, green, false);
   }
 
-  if (MANUAL_COLD || MANUAL_WARM)
-  {
-    mqttClient.publish((String(PATH) + String("YELLOWLED")).c_str(), String(1).c_str());
-    digitalWrite(YELLOW_LED_PIN, HIGH);
-    delay(1500);
-    mqttClient.publish((String(PATH) + String("YELLOWLED")).c_str(), String(0).c_str());
-    digitalWrite(YELLOW_LED_PIN, LOW);
+  if (MANUAL_COLD || MANUAL_WARM) {
+    // Turn on the yellow LED for cold or warm
+    yellow = true;
+    publishLEDStatus(red, yellow, green, true);
+    // Turn off the yellow LED
+    yellow = false;
+    publishLEDStatus(red, yellow, green, false);
     MANUAL_COLD = false;
     MANUAL_WARM = false;
   }
+  delay(1000);
 }
+
 
 void handleAutomaticControl()
 {
   Serial.println("AUTOMATICO");
-  updateAndPublishAllSensors();
+  firstM = true; // variable to reset the LEDs when manual control is activated
+  
+  event = updateAndPublishAllSensors();
 
   switch (state)
   {
   case OFF:
     red = false;
     digitalWrite(RED_LED_PIN, LOW);
-    state = event == LOW_HUM ? ON : state;
-    state = event == LOW_PRESS ? LOCK : state;
-    state = event == RAINING ? LOCK_1 : state;
+    state = (event == LOW_PRESS) ? LOCK : rain ? LOCK_1 : (event == LOW_HUM) ? ON : state;
     break;
 
   case LOCK:
@@ -277,15 +291,13 @@ void handleAutomaticControl()
     break;
 
   case LOCK_1:
-    state = event == NOT_RAINING ? OFF : state;
+    state = notRain ? OFF : state;
     break;
 
   case ON:
     red = true;
     digitalWrite(RED_LED_PIN, HIGH);
-    state = event == HIGH_HUM ? OFF : state;
-    state = event == LOW_PRESS ? OFF : state;
-    state = event == RAINING ? OFF : state;
+    state = (event == HIGH_HUM || event == LOW_PRESS || event == RAINING) ? OFF : state;
     break;
   }
 
@@ -313,27 +325,15 @@ void handleAutomaticControl()
     break;
   }
 
-  publishLEDStatus(red, yellow, green);
+  publishLEDStatus(red, yellow, green, true);
 }
 
-void publishLEDStatus(bool red, bool yellow, bool green)
+void publishLEDStatus(bool red, bool yellow, bool green, bool delayOn)
 {
   mqttClient.publish((String(PATH) + String("REDLED")).c_str(), String(red).c_str());
   mqttClient.publish((String(PATH) + String("YELLOWLED")).c_str(), String(yellow).c_str());
   mqttClient.publish((String(PATH) + String("GREENLED")).c_str(), String(green).c_str());
 
-  Serial.print("RED_LED_PIN");
-  Serial.print("\t");
-  Serial.println(red);
-
-  Serial.print("YELLOW_LED_PIN");
-  Serial.print("\t");
-  Serial.println(yellow);
-
-  Serial.print("GREEN_LED_PIN");
-  Serial.print("\t");
-  Serial.println(green);
-
-  Serial.println("-------------------------------------\n\n");
-  delay(1000);
+  if (delayOn)
+    delay(1000);
 }
