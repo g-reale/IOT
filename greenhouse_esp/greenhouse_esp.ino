@@ -12,11 +12,6 @@ bool MANUAL_COVER = false;
 bool MANUAL_COLD = false;
 bool MANUAL_WARM = false;
 
-// LEDs
-const int RED_LED_PIN = 14;
-const int YELLOW_LED_PIN = 27;
-const int GREEN_LED_PIN = 26;
-
 // Aliases
 #define TMP "TMP"
 #define PRE "PRE"
@@ -36,8 +31,8 @@ enum States
   ON = 3
 };
 
-const char *SSID = "FERNANDA";
-const char *PWD = "17071996";
+const char *SSID = "Fernanda";
+const char *PWD = "nandaaaa";
 
 const char *SERVER = "test.mosquitto.org";
 const int PORT = 1883;
@@ -58,8 +53,8 @@ String sensor;
 Logger temp(sampleBmpTemp, NC, 10000, TMP);
 Logger press(sampleBmpPress, NC, 10000, PRE);
 Logger alt(sampleBmpAlt, NC, 10000, ALT);
-Logger hum(sampleHumidity, 13, 10000, HUM);
-Logger lum(sampleLuminosity, 12, 10000, LUM);
+Logger hum(sampleHumidity, 15, 10000, HUM);
+Logger lum(sampleLuminosity, 34, 10000, LUM);
 Logger ran(sampleRain, 19, 10000, RAN);
 
 void CallbackMqtt(char *topic, byte *payload, unsigned int length);
@@ -89,8 +84,9 @@ void sendCommandToArduino(char command) {
 
 void loop()
 {
+  Serial.println((int)analogRead(15));
   mqttClient.loop();
-
+  
   if (SYSTEM_ON)
   {
     mqttClient.publish((String(PATH) + String("STATUS")).c_str(), String("sistemas ligados").c_str());
@@ -107,6 +103,9 @@ void loop()
     red = false;
     yellow = false;
     green = false;
+    
+    char cmd = red + (yellow << 1) + (green << 2);
+    sendCommandToArduino(cmd);
     publishLEDStatus(red, yellow, green, false);
   }
   // delay(1000);
@@ -162,6 +161,8 @@ void connectToMQTTBroker()
 //   digitalWrite(GREEN_LED_PIN, LOW);
 // }
 
+char cmd = 0;
+
 void CallbackMqtt(char *topic, byte *payload, unsigned int length)
 {
   Serial.print("Topic: ");
@@ -194,6 +195,9 @@ void CallbackMqtt(char *topic, byte *payload, unsigned int length)
     MANUAL_WARM = true;
   else if (receivedPayload.equals("ESFRIAR"))
     MANUAL_COLD = true;
+
+  cmd = MANUAL_IRRIGATION + ((MANUAL_WARM | MANUAL_COLD) << 1) + (MANUAL_COVER << 2);
+  sendCommandToArduino(cmd);
 }
 
 uint8_t updateAndPublishAllSensors()
@@ -239,6 +243,13 @@ void handleManualControl() {
     red = false;
     yellow = false;
     green = false;
+
+    cmd = red + (yellow << 1) + (green << 2);
+    sendCommandToArduino(cmd);
+    
+    //sendCommandToArduino('B');
+    //sendCommandToArduino('D');
+    //sendCommandToArduino('F');
     publishLEDStatus(red, yellow, green, false);
   }
 
@@ -253,6 +264,9 @@ void handleManualControl() {
     red = false;
     publishLEDStatus(red, yellow, green, false);
     MANUAL_IRRIGATION = false;
+
+    char cmd = red + (yellow << 1) + (green << 2);
+    sendCommandToArduino(cmd);
   }
 
   if (MANUAL_COVER) {
@@ -274,6 +288,9 @@ void handleManualControl() {
     publishLEDStatus(red, yellow, green, false);
     MANUAL_COLD = false;
     MANUAL_WARM = false;
+
+    cmd = red + (yellow << 1) + (green << 2);
+    sendCommandToArduino(cmd);
   }
   delay(1000);
 }
@@ -288,13 +305,11 @@ void handleAutomaticControl()
   firstM = true; // variable to reset the LEDs when manual control is activated
   
   uint8_t event = updateAndPublishAllSensors();
-
+  
   switch (state)
   {
   case OFF:
     red = false;
-    // digitalWrite(RED_LED_PIN, LOW);
-    sendCommandToArduino('B');
     state = (event == LOW_PRESS) ? LOCK : rain ? LOCK_1 : (event == LOW_HUM) ? ON : state;
     break;
 
@@ -308,8 +323,6 @@ void handleAutomaticControl()
 
   case ON:
     red = true;
-    // digitalWrite(RED_LED_PIN, HIGH);
-    sendCommandToArduino('A');
     state = (event == HIGH_HUM || event == LOW_PRESS || event == RAINING) ? OFF : state;
     break;
   }
@@ -319,29 +332,22 @@ void handleAutomaticControl()
 
   case EVENT_ENVIRONMENT_CONTROL_ON:
     yellow = true;
-    // digitalWrite(YELLOW_LED_PIN, HIGH);
-    sendCommandToArduino('C');
     break;
 
   case EVENT_ENVIRONMENT_CONTROL_OFF:
     yellow = false;
-    digitalWrite(YELLOW_LED_PIN, LOW);
-    sendCommandToArduino('D');
     break;
 
   case EVENT_AUTOMATIC_COVER_ON:
     green = true;
-    digitalWrite(GREEN_LED_PIN, HIGH);
-    sendCommandToArduino('E');
     break;
 
   case EVENT_AUTOMATIC_COVER_OFF:
     green = false;
-    digitalWrite(GREEN_LED_PIN, LOW);
-    sendCommandToArduino('F');
     break;
   }
-
+  cmd = red + (yellow << 1) + (green << 2);
+  sendCommandToArduino(cmd);
   publishLEDStatus(red, yellow, green, true);
 }
 

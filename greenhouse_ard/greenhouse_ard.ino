@@ -2,12 +2,14 @@ const int yellowLed = 4;
 const int greenLed = 5;
 const int redLed = 6;
 
-void setup() {
-  Serial.begin(9600);
 
+void setup() {
+  Serial2.begin(9600);
+                  
   pinMode(yellowLed, OUTPUT);
   pinMode(greenLed, OUTPUT);
   pinMode(redLed, OUTPUT);
+
 
   // Initially, turn off all LEDs
   digitalWrite(yellowLed, LOW);
@@ -16,8 +18,8 @@ void setup() {
 }
 
 void loop() {
-  if (Serial.available() > 0) {
-    char command = Serial.read();
+  if (Serial2.available() > 0) {
+    char command = Serial2.read();
 
     // Execute the received command from ESP32
     executeCommand(command);
@@ -25,32 +27,12 @@ void loop() {
 }
 
 void executeCommand(char command) {
-  switch (command) {
-    case 'A':
-      digitalWrite(redLed, HIGH);
-      break;
-    
-    case 'B':
-      digitalWrite(redLed, LOW);
-      break;
-    
-    case 'C':
-      digitalWrite(yellowLed, HIGH);
-      break;
-    
-    case 'D':
-      digitalWrite(yellowLed, LOW);
-      break;
-    
-    case 'E':
-      digitalWrite(greenLed, HIGH);
-      break;
-    
-    case 'F':
-      digitalWrite(greenLed, LOW);
-      break;
 
-    default:
-      break;
-  }
+  bool red = command & 1;
+  bool yellow = command & (1<<1);
+  bool green = command & (1<<2);
+
+  digitalWrite(redLed, red);
+  digitalWrite(yellowLed, yellow);
+  digitalWrite(greenLed, green);
 }
