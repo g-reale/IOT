@@ -17,25 +17,25 @@ Este repositório contém o código-fonte e informações relacionadas a um proj
 
 ### Sistemas
 
-1. **Sistema de Irrigação Automática (🔴 LED Vermelho):**
+1. **Sistema de Irrigação (🔴 LED Vermelho):**
    - Componentes: Válvulas, tubos de irrigação.
-   - Ações: Sistema de irrigação automática.
+   - Ações: Sistema de irrigação das plantas.
 
 2. **Sistema de Controle de Ambiente (🟡 LED Amarelo):**
    - Componentes: Ventiladores, nebulizadores, aquecedores elétricos, mantas térmicas.
-   - Ações: Controle automático com base nas condições climáticas para proteger plantas do calor ou frio intenso.
+   - Ações: Controle com base nas condições climáticas para proteger plantas do calor ou frio intenso.
 
-3. **Sistema de Coberturas Automáticas (🟢 LED Verde):**
+3. **Sistema de Coberturas (🟢 LED Verde):**
    - Componentes: Coberturas, toldos e cortinas automáticas.
-   - Ações: Cobertura automática de áreas sensíveis em dias de luz solar intensa.
+   - Ações: Cobertura de áreas sensíveis em dias de luz solar intensa.
 
 ### Estados
 
 1. **Condição 1: Umidade do solo abaixo do nível desejado:**
-   - Ativar o sistema de irrigação automática.
+   - Ativar o sistema de irrigação.
 
 2. **Condição 2: Chuva detectada ou umidade do solo normal/alta ou pressão atmosférica significativamente baixa (possível chuva iminente):**
-   - Desativar o sistema de irrigação automática.
+   - Desativar o sistema de irrigação.
 
 3. **Condição 3: Temperatura muito alta:**
    - Ativar ventiladores e nebulizadores para resfriar o ambiente (ativar Sistema de Controle de Ambiente).
@@ -47,10 +47,10 @@ Este repositório contém o código-fonte e informações relacionadas a um proj
    - Desativar Sistema de Controle de Ambiente.
 
 6. **Condição 6: Luminosidade muito intensa:**
-   - Acionar coberturas automáticas para proteger as plantas da luz solar excessiva (ativar Sistema de Coberturas Automáticas).
+   - Acionar coberturas para proteger as plantas da luz solar excessiva (ativar Sistema de Coberturas).
 
 7. **Condição 7: Luminosidade normal:**
-   - Desativar Sistema de Coberturas Automáticas.
+   - Desativar Sistema de Coberturas.
 
 ## Códigos-fonte
 
