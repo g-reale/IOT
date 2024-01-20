@@ -33,7 +33,7 @@ Adafruit_BMP280 bmp;
 #define TEMPERATURE_HIGH_THRESHOLD 30.0  
 #define TEMPERATURE_LOW_THRESHOLD 15.0
 #define SOIL_HUMIDITY_LOW_THRESHOLD 38
-#define LUMINOSITY_HIGH_THRESHOLD 20.0
+#define LUMINOSITY_HIGH_THRESHOLD 10.0
 #define PRESSURE_LOW_THRESHOLD 1000.0
 
 const char event_names[][30] = {
@@ -113,8 +113,11 @@ uint8_t sampleBmpAlt(float& output, uint8_t pin){
 
 uint8_t sampleHumidity(float& output, uint8_t pin){
   static MovingAvg avg_humidity;
-  float sample = 100 * analogRead(pin) / 4096;
+  float sample = 100 * ((float)analogRead(pin) / 4096.0);
   output = avg_humidity.filter(sample);
+
+  Serial.print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> HUM ");
+  Serial.println((float)analogRead(pin));
 
   if (output < SOIL_HUMIDITY_LOW_THRESHOLD)
     return LOW_HUM;
@@ -125,8 +128,7 @@ uint8_t sampleHumidity(float& output, uint8_t pin){
 uint8_t sampleLuminosity(float& output, uint8_t pin){
   static MovingAvg avg_luminosity;
   float sample = 100 * analogRead(pin) / 4096;
-  output = avg_luminosity.filter(sample);
-
+  output = avg_luminosity.filter(sample);  
   
   if (output > LUMINOSITY_HIGH_THRESHOLD) { 
     // Condition 4: If the light is too intense
